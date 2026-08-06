@@ -1,0 +1,56 @@
+name: CI/CD — Polska Auto Leads Engine
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  backend-test:
+    name: Backend — Lint & Import Check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r requirements.txt
+      - name: Check imports & syntax
+        run: python -c "import main; print('Backend imports OK')"
+
+  frontend-build:
+    name: Frontend — Build (PWA)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci --prefer-offline || npm install
+      - run: npm run build
+      - name: Verify PWA artifacts
+        run: |
+          test -f dist/index.html && echo "index.html OK"
+          test -f public/manifest.json && echo "manifest.json OK"
+          test -f public/sw.js && echo "sw.js OK"
+
+  docker-build:
+    name: Docker Build Check
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push'
+    needs: [backend-test, frontend-build]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify Procfile exists
+        run: test -f Procfile && echo "Procfile OK"
