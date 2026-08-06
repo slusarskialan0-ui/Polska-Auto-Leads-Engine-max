@@ -94,3 +94,13 @@ class AcquisitionLog(Base):
     accepted = Column(Integer, default=0)
     rejected = Column(Integer, default=0)
     created_at = Column(DateTime, default=func.now())
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+    id = Column(Integer, primary_key=True, index=True)
+    action = Column(String, index=True, nullable=False)
+    ip = Column(String, index=True, default="")
+    user_agent = Column(String, default="")
+    endpoint = Column(String, index=True, default="")
+    ts = Column(DateTime, default=func.now(), nullable=False)

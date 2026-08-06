@@ -15,5 +15,5 @@ _raw_origins = os.getenv(
 )
 CORS_ORIGINS = [o.strip() for o in _raw_origins.split(",") if o.strip()]
 
-APP_VERSION = "2.0.0"
+APP_VERSION = "3.0.0"
 PROJECT_ID_HEADER = "X-Project-Id"
