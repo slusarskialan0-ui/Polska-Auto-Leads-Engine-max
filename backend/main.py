@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.models.models import Industry, VoivodeshipStatus
 from app.data.geography import DEFAULT_INDUSTRIES, VOIVODESHIPS
 from app.routers import clients, orders, voivodeships, industries, pipeline, stats
-from config import API_HOST, API_PORT
+from config import API_HOST, API_PORT, CORS_ORIGINS
 
 
 def init_db():
@@ -45,7 +45,7 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

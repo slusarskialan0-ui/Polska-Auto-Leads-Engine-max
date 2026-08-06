@@ -1,7 +1,7 @@
-from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends
 from sqlalchemy.orm import Session
 from typing import List
-from database import get_db
+from database import SessionLocal, get_db
 from app.models.models import AcquisitionLog
 from app.pipeline.pipeline import run_pipeline
 from app.data.geography import DEFAULT_INDUSTRIES, VOIVODESHIPS
@@ -19,19 +19,24 @@ pipeline_status: dict = {}
 
 
 @router.post("/run")
-def start_pipeline(payload: PipelineRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+def start_pipeline(payload: PipelineRequest, background_tasks: BackgroundTasks):
     industries = payload.industries
     if not industries:
         industries = [i["name"] for i in DEFAULT_INDUSTRIES]
     voivodeship = payload.voivodeship
     if voivodeship not in VOIVODESHIPS:
-        from fastapi import HTTPException
         raise HTTPException(status_code=400, detail=f"Nieznane województwo: {voivodeship}")
     pipeline_status[voivodeship] = {"status": "running", "result": None}
 
     def _run():
-        result = run_pipeline(voivodeship, industries, db)
-        pipeline_status[voivodeship] = {"status": "done", "result": result}
+        db = SessionLocal()
+        try:
+            result = run_pipeline(voivodeship, industries, db)
+            pipeline_status[voivodeship] = {"status": "done", "result": result}
+        except Exception as exc:
+            pipeline_status[voivodeship] = {"status": "error", "result": str(exc)}
+        finally:
+            db.close()
 
     background_tasks.add_task(_run)
     return {"message": f"Pipeline uruchomiony dla województwa: {voivodeship}", "voivodeship": voivodeship}
@@ -39,8 +44,7 @@ def start_pipeline(payload: PipelineRequest, background_tasks: BackgroundTasks, 
 
 @router.get("/status/{voivodeship}")
 def get_pipeline_status(voivodeship: str):
-    s = pipeline_status.get(voivodeship, {"status": "idle", "result": None})
-    return s
+    return pipeline_status.get(voivodeship, {"status": "idle", "result": None})
 
 
 @router.get("/logs")

@@ -1,4 +1,5 @@
 """Auto-pipeline: orchestrates all data sources and writes results to DB."""
+import random
 import concurrent.futures
 from datetime import datetime
 from sqlalchemy.orm import Session
@@ -103,7 +104,6 @@ def run_pipeline(voivodeship: str, industries: list[str], db: Session) -> dict:
             f"Pozyskanie klienta – {profile.industry}",
             f"Propozycja współpracy dla firmy z branży {profile.industry}.",
         ))
-        import random
         order = Order(
             client_id=client.id,
             title=tmpl[0],
