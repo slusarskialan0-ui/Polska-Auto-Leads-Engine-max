@@ -31,11 +31,13 @@ class VoivodeshipStatus(Base):
     last_scan = Column(DateTime, nullable=True)
     clients_count = Column(Integer, default=0)
     orders_count = Column(Integer, default=0)
+    error_message = Column(Text, default="")
 
 
 class Client(Base):
     __tablename__ = "clients"
     id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(String, index=True, default="default")  # developer platform foundation
     company_name = Column(String, index=True, nullable=False)
     industry = Column(String, index=True, nullable=False)
     industry_id = Column(Integer, ForeignKey("industries.id"), nullable=True)
@@ -59,6 +61,7 @@ class Client(Base):
 class Order(Base):
     __tablename__ = "orders"
     id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(String, index=True, default="default")  # developer platform foundation
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False)
     title = Column(String, nullable=False)
     description = Column(Text, default="")

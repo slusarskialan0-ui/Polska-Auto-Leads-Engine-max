@@ -1,201 +1,209 @@
 # 🇵🇱 Polska Auto Leads Engine
 
-Kompletny, w pełni automatyczny system pozyskiwania klientów dla całej Polski, działający województwo po województwie.
+**Finalny, kompletny, w pełni automatyczny produkt SaaS** — system pozyskiwania klientów dla całej Polski.  
+Wersja mobilna + PWA + Developer Platform + Auto-skalowanie + Auto-wdrażanie. Bez logowania użytkowników.
 
 ---
 
-## 🚀 Szybki start
+## 🚀 Szybki start (lokalnie)
 
 ### Wymagania
-- Python 3.9+ (z pip)
-- Node.js 18+ (z npm)
+- Python 3.9+
+- Node.js 18+
 
----
-
-### ▶ Uruchomienie jedną komendą (backend + frontend)
+### Uruchomienie jedną komendą
 
 ```bash
 bash start_all.sh
 ```
 
-Po uruchomieniu system jest od razu gotowy do użycia:
 - **Panel web:** http://localhost:3000
 - **Backend API:** http://localhost:8000
-- **Dokumentacja API (Swagger):** http://localhost:8000/docs
+- **Docs (Swagger):** http://localhost:8000/docs
+- **Health check:** http://localhost:8000/health
+- **Metryki:** http://localhost:8000/metrics
 
 ---
 
-### ▶ Uruchomienie backendu (osobno)
+## 🌐 Deploy — Railway (backend)
 
-```bash
-cd backend
-bash start.sh
-```
-
-Lub ręcznie:
-```bash
-cd backend
-pip install -r requirements.txt
-python main.py
-```
-
-Backend uruchamia się na **http://localhost:8000**.  
-Przy pierwszym starcie automatycznie tworzy bazę danych SQLite i wypełnia ją domyślnymi danymi (16 województw, 12 branż).
+1. Utwórz nowy projekt na [Railway](https://railway.app)
+2. Podłącz to repo (folder `backend/`)
+3. Railway auto-wykryje `Procfile` i uruchomi backend
+4. Ustaw zmienne środowiskowe:
+   ```
+   DATABASE_URL=postgresql://...   # Railway Postgres plugin
+   CORS_ORIGINS=https://twoj-frontend.vercel.app
+   PORT=8000
+   ```
+5. Skopiuj URL backendu (np. `https://api.railway.app`)
 
 ---
 
-### ▶ Uruchomienie frontendu (osobno)
+## 🌐 Deploy — Vercel (frontend)
 
-```bash
-cd frontend
-bash start.sh
-```
-
-Lub ręcznie:
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Panel web uruchamia się na **http://localhost:3000**.  
-Frontend automatycznie łączy się z backendem na localhost:8000 (AUTO-CONNECT).
+1. Utwórz nowy projekt na [Vercel](https://vercel.com)
+2. Podłącz to repo, ustaw **Root Directory = `frontend`**
+3. Ustaw zmienne środowiskowe w Vercel:
+   ```
+   VITE_API_URL=https://twoj-backend.railway.app
+   ```
+4. Build command: `npm run build` | Output: `dist`
+5. Vercel automatycznie doda SPA rewriting (vercel.json już skonfigurowany)
 
 ---
 
-## 📋 Jak używać systemu
+## 📱 Wersja mobilna + PWA
 
-1. **Otwórz panel web** → http://localhost:3000
-2. **Przejdź do AUTO-LEADS** (zakładka w menu)
-3. **Wybierz województwo** z listy 16 województw
-4. **Wybierz branże** (lub zostaw wszystkie zaznaczone)
-5. **Kliknij "Uruchom pozyskiwanie"**
-6. System automatycznie:
-   - Uruchamia 5 modułów źródeł danych równolegle
-   - Zbiera dane firm z katalogu, map, rejestrów, social media i ogłoszeń
-   - Usuwa duplikaty i waliduje dane kontaktowe
-   - Tworzy profile klientów w bazie danych
-   - Generuje zlecenia dla każdego klienta
+Aplikacja jest w pełni **mobile-first** i działa jako **Progressive Web App (PWA)**:
+- Responsywny layout z hamburger menu na mobile
+- Instalowalna na telefonie (Add to Home Screen)
+- Service worker — działa offline (app shell)
+- `manifest.json` z ikonami i splash screen
+- Meta tagi dla iOS i Android
 
-7. **Przeglądaj wyniki** w zakładkach:
-   - 📊 **Dashboard** — statystyki ogólne
-   - 🗺️ **Mapa Województw** — status skanowania każdego województwa
-   - 👥 **Klienci** — lista klientów z filtrami
-   - 📋 **Zlecenia** — lista zleceń z filtrami
+Aby zainstalować na telefonie:
+1. Otwórz aplikację w przeglądarce mobilnej
+2. Kliknij "Dodaj do ekranu głównego" (iOS: Safari → Share → Add to Home Screen)
 
 ---
 
-## 🏗️ Architektura systemu
+## 📊 Widoki aplikacji
+
+| Widok | Ścieżka | Opis |
+|-------|---------|------|
+| Dashboard | `/` | Statystyki, wykresy wg województwa/branży/źródła |
+| Mapa Województw | `/mapa` | Status skanowania 16 województw |
+| Klienci | `/klienci` | Lista z filtrami (województwo, branża, źródło, status) |
+| Szczegóły klienta | `/klienci/:id` | Profil firmy + zmiana statusu + zlecenia |
+| Zlecenia | `/zlecenia` | Lista zleceń z filtrami i wartościami |
+| Szczegóły zlecenia | `/zlecenia/:id` | Szczegóły + historia działań + notatki |
+| AUTO-LEADS | `/auto-leads` | Uruchomienie pipeline pozyskiwania |
+| AUTO-STATUS | `/auto-status` | Live monitoring systemu + metryki |
+| AUTO-KONTAKT | `/auto-kontakt` | Generator wiadomości do klientów |
+
+---
+
+## 🏗️ Architektura
 
 ```
 polska-auto-leads-engine/
-├── backend/                    # FastAPI backend
-│   ├── main.py                 # Aplikacja FastAPI + auto-init DB
-│   ├── config.py               # Konfiguracja (port, DB URL)
-│   ├── database.py             # SQLAlchemy engine + sesje
-│   ├── requirements.txt        # Zależności Python
-│   ├── start.sh                # Skrypt startowy backendu
+├── backend/                    # FastAPI backend (Railway)
+│   ├── main.py                 # App + /health + /metrics + /version
+│   ├── config.py               # ENV-based config (Railway/local)
+│   ├── database.py             # SQLAlchemy (SQLite / Postgres)
+│   ├── requirements.txt
+│   ├── start.sh
+│   ├── .env.example
 │   └── app/
-│       ├── models/models.py    # Modele danych (SQLAlchemy)
-│       ├── routers/            # Endpointy API
-│       │   ├── clients.py      # /clients
-│       │   ├── orders.py       # /orders
-│       │   ├── voivodeships.py # /voivodeships
-│       │   ├── industries.py   # /industries
-│       │   ├── pipeline.py     # /pipeline
-│       │   └── stats.py        # /stats
-│       ├── sources/            # Moduły źródeł danych
-│       │   ├── base.py         # Klasa bazowa + walidacja
-│       │   └── sources.py      # 5 źródeł (katalog, mapa, rejestr, social, ogłoszenia)
-│       ├── pipeline/           # Auto-pipeline pozyskiwania
-│       │   └── pipeline.py     # Orchestracja źródeł + deduplikacja + zapis do DB
-│       └── data/
-│           └── geography.py    # 16 województw, miasta, branże, szablony zleceń
-├── frontend/                   # React frontend (Vite + Tailwind)
+│       ├── models/models.py    # Models + project_id (developer platform)
+│       ├── routers/            # clients, orders, voivodeships, industries, pipeline, stats
+│       ├── sources/            # 5 źródeł danych (katalog, mapa, rejestr, social, ogłoszenia)
+│       ├── pipeline/           # Auto-pipeline + deduplikacja + auto-resume (3 retries)
+│       └── data/geography.py   # 16 województw, branże, szablony zleceń
+├── frontend/                   # React + Vite + Tailwind (Vercel)
+│   ├── public/
+│   │   ├── manifest.json       # PWA manifest
+│   │   ├── sw.js               # Service Worker
+│   │   └── icons/              # PWA icons (192px, 512px)
 │   ├── src/
-│   │   ├── App.jsx             # Routing + nawigacja
-│   │   ├── api/api.js          # Axios client (AUTO-CONNECT)
-│   │   └── pages/             # Widoki
-│   │       ├── Dashboard.jsx
-│   │       ├── VoivodeshipMap.jsx
-│   │       ├── Clients.jsx
-│   │       ├── ClientDetail.jsx
-│   │       ├── Orders.jsx
-│   │       ├── OrderDetail.jsx
-│   │       ├── AutoLeads.jsx
-│   │       └── AutoContact.jsx
-│   ├── package.json
-│   ├── vite.config.js
+│   │   ├── App.jsx             # Mobile-first layout + hamburger menu
+│   │   ├── api/api.js          # AUTO-CONNECT (VITE_API_URL)
+│   │   └── pages/             # Dashboard, Mapa, Klienci, Zlecenia, AutoLeads, AutoStatus, AutoContact
+│   ├── vercel.json
+│   ├── .env.example
 │   └── start.sh
-└── start_all.sh                # Uruchomienie całości jedną komendą
+├── .github/workflows/ci.yml    # GitHub Actions CI/CD
+├── Procfile                    # Railway deploy
+├── railway.json                # Railway config
+├── API.md                      # Developer API documentation
+├── SPEC.md                     # Specyfikacja produktu
+└── start_all.sh                # Uruchomienie całości
 ```
 
 ---
 
-## 🌐 API Endpoints
+## 🔌 API Endpoints
 
 | Metoda | Endpoint | Opis |
 |--------|----------|------|
 | GET | `/` | Info o API |
 | GET | `/health` | Health check |
+| GET | `/version` | Wersja |
+| GET | `/metrics` | Metryki pipeline |
 | GET | `/stats` | Statystyki dashboard |
-| GET | `/clients` | Lista klientów (filtry: voivodeship, industry, source_type, status) |
+| GET | `/clients` | Lista klientów (filtry) |
 | GET | `/clients/{id}` | Szczegóły klienta |
-| PATCH | `/clients/{id}/status` | Zmiana statusu klienta |
+| PATCH | `/clients/{id}/status` | Zmiana statusu |
 | GET | `/orders` | Lista zleceń (filtry) |
 | GET | `/orders/{id}` | Szczegóły zlecenia |
-| PATCH | `/orders/{id}/status` | Zmiana statusu zlecenia |
-| POST | `/orders/{id}/history` | Dodanie notatki do zlecenia |
-| GET | `/voivodeships` | Lista województw + statusy |
-| PATCH | `/voivodeships/{name}/priority` | Ustawienie priorytetu województwa |
+| PATCH | `/orders/{id}/status` | Zmiana statusu |
+| POST | `/orders/{id}/history` | Dodaj notatkę |
+| GET | `/voivodeships` | Lista województw |
+| PATCH | `/voivodeships/{name}/priority` | Priorytet |
 | GET | `/industries` | Lista branż |
-| POST | `/industries` | Dodanie nowej branży |
-| POST | `/pipeline/run` | Uruchomienie pipeline dla województwa+branż |
+| POST | `/industries` | Nowa branża |
+| POST | `/pipeline/run` | Uruchom pipeline |
 | GET | `/pipeline/status/{voivodeship}` | Status pipeline |
+| GET | `/pipeline/status` | Wszystkie statusy |
 | GET | `/pipeline/logs` | Logi pozyskiwania |
 
-Pełna dokumentacja interaktywna: **http://localhost:8000/docs**
+Pełna dokumentacja: **[API.md](./API.md)** lub **/docs** (Swagger).
 
 ---
 
-## ⚙️ Konfiguracja
+## ⚙️ Zmienne środowiskowe
 
-Plik `backend/config.py`:
-```python
-API_HOST = "0.0.0.0"
-API_PORT = 8000                          # Port backendu
-DATABASE_URL = "sqlite:///./polska_leads.db"  # Baza danych
-```
+### Backend (Railway)
+| Zmienna | Domyślnie | Opis |
+|---------|-----------|------|
+| `PORT` | `8000` | Port serwera |
+| `DATABASE_URL` | `sqlite:///./polska_leads.db` | URL bazy danych |
+| `CORS_ORIGINS` | `http://localhost:3000` | Dozwolone originy frontendu |
 
-Zmiana adresu API dla frontendu (opcjonalnie):
+### Frontend (Vercel)
+| Zmienna | Domyślnie | Opis |
+|---------|-----------|------|
+| `VITE_API_URL` | `http://localhost:8000` | URL backendu |
+
+---
+
+## 🛠️ Komendy startowe
+
 ```bash
-# frontend/.env
-VITE_API_URL=http://localhost:8000
+# Wszystko naraz
+bash start_all.sh
+
+# Backend osobno
+cd backend && bash start.sh
+
+# Frontend osobno
+cd frontend && bash start.sh
+
+# Produkcja (backend)
+cd backend && pip install -r requirements.txt && python main.py
+
+# Produkcja (frontend build)
+cd frontend && npm install && npm run build
 ```
 
 ---
 
-## 🌍 Uruchomienie w GitHub Codespaces / Replit
+## 🏭 Developer Platform
 
-1. Otwórz terminal
-2. Uruchom backend: `cd backend && pip install -r requirements.txt && python main.py`
-3. W nowym terminalu: `cd frontend && npm install && npm run dev`
-4. W Codespaces: kliknij "Open in Browser" dla portu 3000
-
----
-
-## 📊 Dane testowe
-
-System generuje realistyczne dane firm polskich per województwo + branża przy każdym uruchomieniu pipeline. Dane są generowane deterministycznie (ten sam seed = te same firmy), więc przy ponownym uruchomieniu pipeline nie tworzą się duplikaty (deduplikacja po nazwie + województwo + branża).
+Projekt jest zbudowany jako fundament developer platform:
+- Każdy zasób (klient, zlecenie) ma pole `project_id` do izolacji danych per projekt
+- API jest bezstanowe i nie wymaga logowania
+- W przyszłości: API Key per `project_id`, webhooks, rate limiting
+- Pełna dokumentacja: **[API.md](./API.md)**
 
 ---
 
 ## 🗺️ Województwa
 
-System obsługuje wszystkie 16 województw Polski:
-dolnośląskie, kujawsko-pomorskie, lubelskie, lubuskie, łódzkie, małopolskie, mazowieckie, opolskie, podkarpackie, podlaskie, pomorskie, śląskie, świętokrzyskie, warmińsko-mazurskie, wielkopolskie, zachodniopomorskie
+dolnośląskie · kujawsko-pomorskie · lubelskie · lubuskie · łódzkie · małopolskie · mazowieckie · opolskie · podkarpackie · podlaskie · pomorskie · śląskie · świętokrzyskie · warmińsko-mazurskie · wielkopolskie · zachodniopomorskie
 
-## 🏭 Branże
+## 🏭 Branże (domyślne)
 
-System obsługuje 12 domyślnych branż (możliwe dodawanie nowych przez API):
-fryzjer, mechanik, restauracja, budowlanka, kosmetyczka, transport, sklep lokalny, nieruchomości, medyczna, edukacja, IT, usługi mobilne
+fryzjer · mechanik · restauracja · budowlanka · kosmetyczka · transport · sklep lokalny · nieruchomości · medyczna · edukacja · IT · usługi mobilne
+
