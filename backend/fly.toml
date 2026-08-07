@@ -2,7 +2,7 @@ app = "polska-auto-leads-backend"
 primary_region = "waw"
 
 [build]
-  dockerfile = "backend/Dockerfile"
+  dockerfile = "Dockerfile"
 
 [env]
   PORT = "8000"

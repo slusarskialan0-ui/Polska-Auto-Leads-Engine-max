@@ -14,20 +14,17 @@ permissions:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build backend Docker image
-        run: docker build -f backend/Dockerfile backend
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
 
       - name: Setup flyctl
-        uses: superfly/flyctl-actions/setup-flyctl@master
+        uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1
 
-      - name: Deploy backend to Fly.io
+      - name: Build and deploy backend to Fly.io
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-        run: flyctl deploy --config backend/fly.toml --remote-only
+        run: flyctl deploy --config fly.toml --remote-only
