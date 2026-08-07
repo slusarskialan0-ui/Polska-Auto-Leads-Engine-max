@@ -1,4 +1,5 @@
 """Main FastAPI application entry point."""
+import asyncio
 import sys
 import os
 import time
@@ -13,7 +14,19 @@ from database import engine, Base, SessionLocal
 from sqlalchemy.orm import Session
 from app.models.models import Industry, VoivodeshipStatus
 from app.data.geography import DEFAULT_INDUSTRIES, VOIVODESHIPS
-from app.routers import clients, orders, voivodeships, industries, pipeline, stats
+from app.routers import (
+    analytics,
+    biznes,
+    clients,
+    devplatform,
+    industries,
+    orders,
+    pipeline,
+    security,
+    stats,
+    system,
+    voivodeships,
+)
 from config import API_HOST, API_PORT, CORS_ORIGINS, APP_VERSION
 
 # Simple in-process cache store (key -> (value, expires_at))
@@ -80,11 +93,55 @@ app = FastAPI(
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=CORS_ORIGINS or ["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Background task references kept to prevent GC
+_bg_tasks: set = set()
+
+
+def _fire_and_forget(coro):
+    """Schedule a coroutine and hold a reference to prevent garbage collection."""
+    task = asyncio.create_task(coro)
+    _bg_tasks.add(task)
+    task.add_done_callback(_bg_tasks.discard)
+
+
+@app.middleware("http")
+async def security_middleware(request: Request, call_next):
+    start = time.perf_counter()
+    ip = security.get_client_ip(request)
+    endpoint = request.url.path
+    user_agent = request.headers.get("user-agent", "")
+
+    if ip in security.BLOCKED_IPS:
+        security.add_threat(ip, f"blocked_ip:{security.BLOCKED_IPS[ip]['reason']}", endpoint)
+        _fire_and_forget(security.enqueue_audit_log("BLOCKED_IP", ip, user_agent, endpoint))
+        devplatform.record_api_request(endpoint, 0)
+        return JSONResponse(status_code=403, content={"detail": "IP blocked"})
+
+    if not security.rate_limit_ok(ip):
+        security.add_threat(ip, "rate_limit_exceeded", endpoint)
+        _fire_and_forget(security.enqueue_audit_log("RATE_LIMITED", ip, user_agent, endpoint))
+        devplatform.record_api_request(endpoint, 0)
+        return JSONResponse(status_code=429, content={"detail": "Rate limit exceeded"})
+
+    try:
+        response = await call_next(request)
+    except Exception:
+        _fire_and_forget(security.enqueue_audit_log("ERROR_500", ip, user_agent, endpoint))
+        devplatform.record_api_request(endpoint, (time.perf_counter() - start) * 1000)
+        raise
+
+    action = f"{request.method} {response.status_code}"
+    _fire_and_forget(security.enqueue_audit_log(action, ip, user_agent, endpoint))
+    devplatform.record_api_request(endpoint, (time.perf_counter() - start) * 1000)
+    return response
+
 
 app.include_router(clients.router)
 app.include_router(orders.router)
@@ -92,6 +149,11 @@ app.include_router(voivodeships.router)
 app.include_router(industries.router)
 app.include_router(pipeline.router)
 app.include_router(stats.router)
+app.include_router(security.router)
+app.include_router(analytics.router)
+app.include_router(biznes.router)
+app.include_router(devplatform.router)
+app.include_router(system.router)
 
 
 @app.get("/", tags=["system"])

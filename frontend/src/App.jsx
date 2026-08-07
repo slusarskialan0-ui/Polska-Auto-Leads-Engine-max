@@ -9,6 +9,14 @@ import VoivodeshipMap from './pages/VoivodeshipMap'
 import AutoLeads from './pages/AutoLeads'
 import AutoContact from './pages/AutoContact'
 import AutoStatus from './pages/AutoStatus'
+import AutoSecurity from './pages/AutoSecurity'
+import AutoAnalytics from './pages/AutoAnalytics'
+import AutoBiznes from './pages/AutoBiznes'
+import AutoDevPlatform from './pages/AutoDevPlatform'
+import AutoMarketplace from './pages/AutoMarketplace'
+import AutoAgency from './pages/AutoAgency'
+import AutoLanding from './pages/AutoLanding'
+import AutoRozwoj from './pages/AutoRozwoj'
 
 const NAV = [
   { to: '/', label: '📊 Dashboard' },
@@ -18,6 +26,14 @@ const NAV = [
   { to: '/auto-leads', label: '🚀 AUTO-LEADS' },
   { to: '/auto-status', label: '📡 AUTO-STATUS' },
   { to: '/auto-kontakt', label: '📧 AUTO-KONTAKT' },
+  { to: '/auto-security', label: '🛡️ AUTO-SECURITY' },
+  { to: '/auto-analytics', label: '📊 AUTO-ANALYTICS' },
+  { to: '/auto-biznes', label: '💰 AUTO-BIZNES' },
+  { to: '/auto-dev', label: '🧩 DEV PLATFORM' },
+  { to: '/marketplace', label: '🏪 Marketplace' },
+  { to: '/agencja', label: '🏢 Agencja' },
+  { to: '/landing', label: '🌐 Landing' },
+  { to: '/auto-rozwoj', label: '🧠 AUTO-ROZWÓJ' },
 ]
 
 function Sidebar({ onClose }) {
@@ -95,6 +111,14 @@ export default function App() {
             <Route path="/auto-leads" element={<AutoLeads />} />
             <Route path="/auto-status" element={<AutoStatus />} />
             <Route path="/auto-kontakt" element={<AutoContact />} />
+            <Route path="/auto-security" element={<AutoSecurity />} />
+            <Route path="/auto-analytics" element={<AutoAnalytics />} />
+            <Route path="/auto-biznes" element={<AutoBiznes />} />
+            <Route path="/auto-dev" element={<AutoDevPlatform />} />
+            <Route path="/marketplace" element={<AutoMarketplace />} />
+            <Route path="/agencja" element={<AutoAgency />} />
+            <Route path="/landing" element={<AutoLanding />} />
+            <Route path="/auto-rozwoj" element={<AutoRozwoj />} />
           </Routes>
         </main>
       </div>
