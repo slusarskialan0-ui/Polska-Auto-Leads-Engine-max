@@ -1,0 +1,14 @@
+.git
+.github
+frontend
+.env
+.env.*
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+backend/.env
+backend/.env.*
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
