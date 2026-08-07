@@ -3,6 +3,7 @@ import asyncio
 import sys
 import os
 import time
+from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 
 sys.path.insert(0, os.path.dirname(__file__))
@@ -169,7 +170,23 @@ def root():
 
 @app.get("/health", tags=["system"])
 def health():
-    return {"status": "ok", "version": APP_VERSION, "ts": int(time.time())}
+    db_status = "ok"
+    db_error = None
+    try:
+        with engine.connect() as conn:
+            conn.exec_driver_sql("SELECT 1")
+    except Exception as exc:
+        db_status = "error"
+        db_error = str(exc)
+
+    return {
+        "status": "ok" if db_status == "ok" else "degraded",
+        "version": APP_VERSION,
+        "ts": int(time.time()),
+        "time_utc": datetime.now(timezone.utc).isoformat(),
+        "db": db_status,
+        "error": db_error,
+    }
 
 
 @app.get("/version", tags=["system"])
