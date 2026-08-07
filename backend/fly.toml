@@ -1,0 +1,28 @@
+app = "polska-auto-leads-engine"
+primary_region = "ams"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  min_machines_running = 1
+
+[[services]]
+  internal_port = 8000
+  protocol = "tcp"
+  auto_restart = true
+  auto_heal = true
+
+  [[services.ports]]
+    handlers = ["http"]
+    port = 80
+
+  [[services.ports]]
+    handlers = ["tls", "http"]
+    port = 443
+
+[env]
+  API_HOST = "0.0.0.0"
+  PORT = "8000"
