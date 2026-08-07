@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import api, { readProjectId } from '../api/api'
+import api, { readProjectId, saveProjectId } from '../api/api'
 
 export default function AutoDevPlatform() {
   const [analytics, setAnalytics] = useState(null)
@@ -36,10 +36,8 @@ export default function AutoDevPlatform() {
     await load()
   }
 
-  const saveProjectId = async () => {
-    const normalized = projectId.trim() || 'default'
-    window.localStorage.setItem('pale-project-id', normalized)
-    window.dispatchEvent(new Event('pale:project-changed'))
+  const persistProjectId = async () => {
+    const normalized = saveProjectId(projectId)
     setProjectId(normalized)
     await load()
   }
@@ -58,7 +56,7 @@ export default function AutoDevPlatform() {
           <h2 className="mb-4 text-lg font-semibold">Project scope</h2>
           <div className="flex flex-col gap-3 md:flex-row md:items-center">
             <input value={projectId} onChange={(e) => setProjectId(e.target.value)} className="w-full rounded-xl border px-3 py-2 text-sm md:max-w-sm" placeholder="np. fleet-premium" />
-            <button onClick={saveProjectId} className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">Przełącz projectId</button>
+            <button onClick={persistProjectId} className="rounded-xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800">Przełącz projectId</button>
           </div>
           <div className="mt-4 text-sm text-gray-600">
             <div>Aktualny projectId: <span className="font-semibold">{projectConfig?.project_id || 'default'}</span></div>

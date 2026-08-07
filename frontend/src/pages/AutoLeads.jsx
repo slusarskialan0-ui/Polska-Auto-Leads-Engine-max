@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import api, { readProjectId } from '../api/api'
+import api, { readProjectId, saveProjectId } from '../api/api'
 
 export default function AutoLeads() {
   const [voivodeships, setVoivodeships] = useState([])
@@ -25,12 +25,6 @@ export default function AutoLeads() {
     setSelectedIndustries(prev => prev.includes(name) ? prev.filter(i => i !== name) : [...prev, name])
   }
 
-  const saveProjectId = () => {
-    const normalized = projectId.trim() || 'default'
-    window.localStorage.setItem('pale-project-id', normalized)
-    setProjectId(normalized)
-    window.dispatchEvent(new Event('pale:project-changed'))
-  }
 
   const loadQueue = async () => {
     const response = await api.get('/pipeline/queue')
@@ -40,7 +34,8 @@ export default function AutoLeads() {
   const startPipeline = async () => {
     if (!selectedVoiv) return alert('Wybierz województwo')
     if (selectedIndustries.length === 0) return alert('Wybierz co najmniej jedną branżę')
-    saveProjectId()
+    const normalizedProjectId = saveProjectId(projectId)
+    setProjectId(normalizedProjectId)
     setRunning(true)
     setStatus(null)
     setLogs([])

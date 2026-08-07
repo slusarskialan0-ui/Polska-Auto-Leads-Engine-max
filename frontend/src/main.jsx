@@ -122,7 +122,7 @@ function Root() {
         </div>
       )}
       {updateReady && (
-        <div className={`fixed inset-x-0 z-50 bg-blue-600 py-2 text-center text-sm text-white ${online ? 'top-0' : 'top-10'}`}>
+        <div className={`fixed inset-x-0 z-50 bg-blue-600 py-2 text-center text-sm text-white ${online ? (syncMessage ? 'top-10' : 'top-0') : (syncMessage ? 'top-20' : 'top-10')}`}>
           Nowa wersja aplikacji jest gotowa.
           <button onClick={handleUpdate} className="ml-3 rounded bg-white/20 px-3 py-1 font-semibold hover:bg-white/30">
             Odśwież

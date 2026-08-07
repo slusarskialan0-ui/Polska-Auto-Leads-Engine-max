@@ -3,6 +3,12 @@ import axios from 'axios'
 const FALLBACK_API = 'http://localhost:8000'
 
 const readProjectId = () => window.localStorage.getItem('pale-project-id') || 'default'
+const saveProjectId = (value) => {
+  const normalized = (value || '').trim() || 'default'
+  window.localStorage.setItem('pale-project-id', normalized)
+  window.dispatchEvent(new Event('pale:project-changed'))
+  return normalized
+}
 const readStoredApi = () => window.localStorage.getItem('pale-api-url')
 
 const resolveInitialBase = () => {
@@ -52,4 +58,4 @@ api.interceptors.response.use(
 
 export default api
 export const getApiBase = () => api.defaults.baseURL
-export { readProjectId }
+export { readProjectId, saveProjectId }
