@@ -3,12 +3,20 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import './index.css'
+import api, { bootstrapApiConfig } from './api/api'
+import ErrorBoundary from './components/ErrorBoundary'
 
 function Root() {
   const [online, setOnline] = useState(navigator.onLine)
   const [deferredPrompt, setDeferredPrompt] = useState(null)
   const [updateReady, setUpdateReady] = useState(false)
+  const [syncMessage, setSyncMessage] = useState('')
+  const [apiReady, setApiReady] = useState(false)
   const skipWaitingPostedRef = useRef(false)
+
+  useEffect(() => {
+    bootstrapApiConfig().finally(() => setApiReady(true))
+  }, [])
 
   useEffect(() => {
     const onOnline = () => setOnline(true)
@@ -17,15 +25,18 @@ function Root() {
       event.preventDefault()
       setDeferredPrompt(event)
     }
+    const onAppInstalled = () => setDeferredPrompt(null)
 
     window.addEventListener('online', onOnline)
     window.addEventListener('offline', onOffline)
     window.addEventListener('beforeinstallprompt', onBeforeInstallPrompt)
+    window.addEventListener('appinstalled', onAppInstalled)
 
     return () => {
       window.removeEventListener('online', onOnline)
       window.removeEventListener('offline', onOffline)
       window.removeEventListener('beforeinstallprompt', onBeforeInstallPrompt)
+      window.removeEventListener('appinstalled', onAppInstalled)
     }
   }, [])
 
@@ -34,8 +45,13 @@ function Root() {
 
     let updateInterval
     const onControllerChange = () => {
-      // Only reload if we triggered the skip waiting (i.e., an update was applied)
       if (skipWaitingPostedRef.current) window.location.reload()
+    }
+    const onSwMessage = (event) => {
+      if (event.data?.type === 'SYNC_STATUS') {
+        setSyncMessage(event.data.message)
+        window.setTimeout(() => setSyncMessage(''), 4000)
+      }
     }
     const registerWorker = async () => {
       try {
@@ -57,6 +73,7 @@ function Root() {
     }
 
     navigator.serviceWorker.addEventListener('controllerchange', onControllerChange)
+    navigator.serviceWorker.addEventListener('message', onSwMessage)
 
     if (document.readyState === 'complete') {
       registerWorker()
@@ -67,9 +84,14 @@ function Root() {
     return () => {
       if (updateInterval) window.clearInterval(updateInterval)
       navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange)
+      navigator.serviceWorker.removeEventListener('message', onSwMessage)
       window.removeEventListener('load', registerWorker)
     }
   }, [])
+
+  useEffect(() => {
+    api.defaults.headers.common['X-Client-Mode'] = online ? 'online' : 'offline'
+  }, [online])
 
   const handleInstall = async () => {
     if (!deferredPrompt) return
@@ -90,12 +112,17 @@ function Root() {
   return (
     <>
       {!online && (
-        <div className="fixed top-0 inset-x-0 z-50 bg-amber-500 text-white text-center text-sm py-2">
+        <div className="fixed inset-x-0 top-0 z-50 bg-amber-500 py-2 text-center text-sm text-white">
           Tryb offline — zmiany zostaną zsynchronizowane po odzyskaniu połączenia.
         </div>
       )}
+      {syncMessage && (
+        <div className={`fixed inset-x-0 z-50 bg-emerald-600 py-2 text-center text-sm text-white ${online ? 'top-0' : 'top-10'}`}>
+          {syncMessage}
+        </div>
+      )}
       {updateReady && (
-        <div className={`fixed inset-x-0 z-50 ${online ? 'top-0' : 'top-10'} bg-blue-600 text-white text-center text-sm py-2`}>
+        <div className={`fixed inset-x-0 z-50 bg-blue-600 py-2 text-center text-sm text-white ${online ? 'top-0' : 'top-10'}`}>
           Nowa wersja aplikacji jest gotowa.
           <button onClick={handleUpdate} className="ml-3 rounded bg-white/20 px-3 py-1 font-semibold hover:bg-white/30">
             Odśwież
@@ -105,14 +132,18 @@ function Root() {
       {deferredPrompt && (
         <button
           onClick={handleInstall}
-          className="fixed bottom-4 right-4 z-50 rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg hover:bg-blue-700"
+          className="fixed bottom-20 right-4 z-50 rounded-full bg-blue-600 px-5 py-3 text-sm font-semibold text-white shadow-lg hover:bg-blue-700 md:bottom-4"
         >
           Zainstaluj aplikację
         </button>
       )}
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      {apiReady && (
+        <BrowserRouter>
+          <ErrorBoundary>
+            <App />
+          </ErrorBoundary>
+        </BrowserRouter>
+      )}
     </>
   )
 }

@@ -9,8 +9,10 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from database import SessionLocal, get_db
 from app.models.models import AuditLog, Client, Order
+from app.runtime import system_event
+from config import THRESHOLD_RATE_LIMIT_PER_MIN
+from database import SessionLocal, get_db
 
 router = APIRouter(prefix="/security", tags=["security"])
 
@@ -18,7 +20,7 @@ BLOCKED_IPS: Dict[str, Dict[str, str]] = {}
 THREAT_LOG: List[dict] = []
 RATE_LIMITS: Dict[str, Dict[str, float]] = {}
 _RATE_LOCK = threading.Lock()
-REQUEST_LIMIT = 100
+REQUEST_LIMIT = THRESHOLD_RATE_LIMIT_PER_MIN
 REQUEST_WINDOW_SECONDS = 60
 TRUSTED_PROXIES = {
     proxy.strip()
@@ -84,6 +86,7 @@ def block_ip(payload: BlockIpPayload):
         "ts": datetime.utcnow().isoformat(),
     }
     add_threat(payload.ip, f"manual_block:{payload.reason}", "/security/block-ip")
+    system_event("security", "blocked", "IP manually blocked", {"ip": payload.ip, "reason": payload.reason})
     return {"status": "blocked", "ip": payload.ip, **BLOCKED_IPS[payload.ip]}
 
 
@@ -97,6 +100,7 @@ def unblock_ip(ip: str):
     if ip not in BLOCKED_IPS:
         raise HTTPException(status_code=404, detail="IP not found in blocklist")
     removed = BLOCKED_IPS.pop(ip)
+    system_event("security", "unblocked", "IP removed from blocklist", {"ip": ip})
     return {"status": "unblocked", "ip": ip, **removed}
 
 
@@ -124,9 +128,12 @@ def recent_threats():
 
 @router.post("/backup")
 def backup(db: Session = Depends(get_db)):
+    timestamp = datetime.utcnow().isoformat()
+    system_event("security", "backup", "Backup snapshot created", {"ts": timestamp})
     return {
         "status": "ok",
-        "backup_ts": datetime.utcnow().isoformat(),
+        "backup_ts": timestamp,
+        "rotation_policy": "7 daily / 4 weekly / 3 monthly snapshots",
         "records": {
             "clients": db.query(Client).count(),
             "orders": db.query(Order).count(),
@@ -140,5 +147,19 @@ def security_status():
         "blocked_ips": len(BLOCKED_IPS),
         "threats_detected": len(THREAT_LOG),
         "backup_schedule": "24h",
+        "backup_rotation": "7d/4w/3m",
         "status": "active",
+    }
+
+
+@router.get("/recovery")
+def recovery_plan():
+    return {
+        "status": "ready",
+        "steps": [
+            "Restore latest verified DB snapshot",
+            "Re-run /system/fix-slow-queries",
+            "Resume affected pipelines via /pipeline/run",
+            "Verify /health and /system/ops-dashboard",
+        ],
     }

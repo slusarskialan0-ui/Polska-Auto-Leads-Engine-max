@@ -1,37 +1,44 @@
 #!/bin/bash
-# AUTO-START: uruchamia backend i frontend z auto-restart i healthcheck
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+set -euo pipefail
 
-echo "=== Polska Auto Leads Engine v2.0 — AUTO-START ==="
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+BACKEND_DIR="$SCRIPT_DIR/backend"
+FRONTEND_DIR="$SCRIPT_DIR/frontend"
+
+cleanup() {
+  echo ""
+  echo "Zatrzymuję system..."
+  kill ${BACKEND_PID:-0} ${FRONTEND_PID:-0} 2>/dev/null || true
+}
+trap cleanup EXIT SIGINT SIGTERM
+
+echo "=== Polska Auto Leads Engine v3.1 — AUTO-START ==="
 echo ""
 
-# Backend
 echo "[1/2] Uruchamiam backend..."
-cd "$SCRIPT_DIR/backend"
+cd "$BACKEND_DIR"
 pip install -r requirements.txt -q
 python main.py &
 BACKEND_PID=$!
 echo "Backend PID: $BACKEND_PID"
 
-# Wait for backend healthcheck
 echo "Czekam na backend..."
-for i in $(seq 1 15); do
+for i in $(seq 1 20); do
   sleep 1
-  if curl -sf http://localhost:8000/health > /dev/null 2>&1; then
+  if curl -sf http://localhost:8000/health >/dev/null 2>&1; then
     echo "✅ Backend gotowy! (http://localhost:8000)"
     break
   fi
-  if [ $i -eq 15 ]; then
-    echo "⚠ Backend nie odpowiada po 15s — kontynuuję mimo to"
+  if [ "$i" -eq 20 ]; then
+    echo "⚠ Backend nie odpowiada po 20s — kontynuuję mimo to"
   fi
 done
 
-# Frontend
 echo ""
 echo "[2/2] Uruchamiam frontend..."
-cd "$SCRIPT_DIR/frontend"
+cd "$FRONTEND_DIR"
 npm install --silent
-npm run dev &
+npm run dev -- --host 0.0.0.0 &
 FRONTEND_PID=$!
 echo "Frontend PID: $FRONTEND_PID"
 
@@ -43,18 +50,9 @@ echo "  🔌 Backend API:   http://localhost:8000"
 echo "  📖 API Docs:      http://localhost:8000/docs"
 echo "  📡 Health:        http://localhost:8000/health"
 echo "  📈 Metryki:       http://localhost:8000/metrics"
+echo "  🧰 Ops dashboard: http://localhost:8000/system/ops-dashboard"
 echo "============================================="
 echo ""
 echo "Naciśnij Ctrl+C aby zatrzymać"
 
-# Trap cleanup
-cleanup() {
-  echo ""
-  echo "Zatrzymuję system..."
-  kill $BACKEND_PID $FRONTEND_PID 2>/dev/null
-  exit 0
-}
-trap cleanup SIGINT SIGTERM
-
 wait
-

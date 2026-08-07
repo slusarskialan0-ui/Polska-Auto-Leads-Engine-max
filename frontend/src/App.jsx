@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { Routes, Route, NavLink } from 'react-router-dom'
+import React, { useEffect, useMemo, useState } from 'react'
+import { Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import Dashboard from './pages/Dashboard'
 import Clients from './pages/Clients'
 import ClientDetail from './pages/ClientDetail'
@@ -19,36 +19,41 @@ import AutoLanding from './pages/AutoLanding'
 import AutoRozwoj from './pages/AutoRozwoj'
 
 const NAV = [
-  { to: '/', label: '📊 Dashboard' },
-  { to: '/mapa', label: '🗺️ Mapa Województw' },
-  { to: '/klienci', label: '👥 Klienci' },
-  { to: '/zlecenia', label: '📋 Zlecenia' },
-  { to: '/auto-leads', label: '🚀 AUTO-LEADS' },
-  { to: '/auto-status', label: '📡 AUTO-STATUS' },
-  { to: '/auto-kontakt', label: '📧 AUTO-KONTAKT' },
-  { to: '/auto-security', label: '🛡️ AUTO-SECURITY' },
-  { to: '/auto-analytics', label: '📊 AUTO-ANALYTICS' },
-  { to: '/auto-biznes', label: '💰 AUTO-BIZNES' },
-  { to: '/auto-dev', label: '🧩 DEV PLATFORM' },
-  { to: '/marketplace', label: '🏪 Marketplace' },
-  { to: '/agencja', label: '🏢 Agencja' },
-  { to: '/landing', label: '🌐 Landing' },
-  { to: '/auto-rozwoj', label: '🧠 AUTO-ROZWÓJ' },
+  { to: '/', label: '📊 Dashboard', short: 'Home' },
+  { to: '/mapa', label: '🗺️ Mapa Województw', short: 'Mapa' },
+  { to: '/klienci', label: '👥 Klienci', short: 'Klienci' },
+  { to: '/zlecenia', label: '📋 Zlecenia', short: 'Zlecenia' },
+  { to: '/auto-leads', label: '🚀 AUTO-LEADS', short: 'Leads' },
+  { to: '/auto-status', label: '📡 AUTO-STATUS', short: 'Status' },
+  { to: '/auto-kontakt', label: '📧 AUTO-KONTAKT', short: 'Kontakt' },
+  { to: '/auto-security', label: '🛡️ AUTO-SECURITY', short: 'Security' },
+  { to: '/auto-analytics', label: '📊 AUTO-ANALYTICS', short: 'Analytics' },
+  { to: '/auto-biznes', label: '💰 AUTO-BIZNES', short: 'Biznes' },
+  { to: '/auto-dev', label: '🧩 DEV PLATFORM', short: 'Dev' },
+  { to: '/marketplace', label: '🏪 Marketplace', short: 'Market' },
+  { to: '/agencja', label: '🏢 Agencja', short: 'Agencja' },
+  { to: '/landing', label: '🌐 Landing', short: 'Landing' },
+  { to: '/auto-rozwoj', label: '🧠 AUTO-ROZWÓJ', short: 'Roadmap' },
 ]
 
-function Sidebar({ onClose }) {
+const MOBILE_NAV = NAV.filter(({ to }) => ['/', '/auto-leads', '/auto-status', '/auto-analytics', '/auto-dev'].includes(to))
+
+function Sidebar({ onClose, projectId }) {
   return (
-    <aside className="w-64 bg-blue-900 text-white flex flex-col h-full">
-      <div className="p-4 border-b border-blue-700 flex items-center justify-between">
+    <aside className="flex h-full w-64 flex-col bg-blue-950 text-white">
+      <div className="flex items-center justify-between border-b border-blue-800 p-4">
         <div>
           <div className="text-xl font-bold">🇵🇱 Auto Leads</div>
-          <div className="text-xs text-blue-300 mt-1">System Pozyskiwania Klientów</div>
+          <div className="mt-1 text-xs text-blue-300">System Pozyskiwania Klientów</div>
         </div>
         {onClose && (
-          <button onClick={onClose} className="text-blue-300 hover:text-white text-2xl leading-none md:hidden ml-2">✕</button>
+          <button onClick={onClose} className="ml-2 text-2xl leading-none text-blue-300 hover:text-white md:hidden">✕</button>
         )}
       </div>
-      <nav className="flex-1 py-4 overflow-y-auto">
+      <div className="border-b border-blue-900 px-4 py-3 text-xs text-blue-200">
+        projectId: <span className="font-semibold text-white">{projectId}</span>
+      </div>
+      <nav className="flex-1 overflow-y-auto py-4">
         {NAV.map(({ to, label }) => (
           <NavLink
             key={to}
@@ -56,51 +61,76 @@ function Sidebar({ onClose }) {
             end={to === '/'}
             onClick={onClose}
             className={({ isActive }) =>
-              `block px-4 py-2.5 text-sm transition-colors ${
-                isActive ? 'bg-blue-700 text-white font-semibold' : 'text-blue-200 hover:bg-blue-800'
-              }`
+              `block px-4 py-2.5 text-sm transition-colors ${isActive ? 'bg-blue-700 text-white font-semibold' : 'text-blue-200 hover:bg-blue-900'}`
             }
           >
             {label}
           </NavLink>
         ))}
       </nav>
-      <div className="p-4 text-xs text-blue-400 border-t border-blue-700">
-        Polska Auto Leads Engine v2.0
-      </div>
+      <div className="border-t border-blue-800 p-4 text-xs text-blue-400">Polska Auto Leads Engine v3.1</div>
     </aside>
   )
 }
 
 export default function App() {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [projectId, setProjectId] = useState(() => window.localStorage.getItem('pale-project-id') || 'default')
+  const location = useLocation()
+
+  useEffect(() => {
+    const syncProjectId = () => setProjectId(window.localStorage.getItem('pale-project-id') || 'default')
+    window.addEventListener('storage', syncProjectId)
+    window.addEventListener('pale:project-changed', syncProjectId)
+    return () => {
+      window.removeEventListener('storage', syncProjectId)
+      window.removeEventListener('pale:project-changed', syncProjectId)
+    }
+  }, [])
+
+  useEffect(() => {
+    const themeMeta = document.querySelector('meta[name="theme-color"]')
+    if (!themeMeta) return
+    themeMeta.setAttribute('content', location.pathname === '/landing' ? '#020617' : '#1e3a8a')
+  }, [location.pathname])
+
+  const pageLabel = useMemo(() => NAV.find((item) => item.to === location.pathname)?.label || 'AUTO-APP', [location.pathname])
 
   return (
-    <div className="flex min-h-screen bg-gray-50">
-      {/* Desktop sidebar */}
-      <div className="hidden md:flex flex-col w-64 min-h-screen fixed top-0 left-0 z-20">
-        <Sidebar />
+    <div className="flex min-h-screen bg-slate-50 text-slate-900">
+      <div className="fixed left-0 top-0 hidden min-h-screen w-64 md:flex">
+        <Sidebar projectId={projectId} />
       </div>
 
-      {/* Mobile overlay */}
       {mobileOpen && (
-        <div className="fixed inset-0 z-30 flex md:hidden">
-          <div className="flex flex-col w-72 min-h-screen shadow-2xl">
-            <Sidebar onClose={() => setMobileOpen(false)} />
+        <div className="fixed inset-0 z-40 flex md:hidden">
+          <div className="flex min-h-screen w-72 flex-col shadow-2xl">
+            <Sidebar onClose={() => setMobileOpen(false)} projectId={projectId} />
           </div>
-          <div className="flex-1 bg-black bg-opacity-50" onClick={() => setMobileOpen(false)} />
+          <button className="flex-1 bg-black/50" onClick={() => setMobileOpen(false)} aria-label="Zamknij menu" />
         </div>
       )}
 
-      {/* Main content */}
-      <div className="flex-1 flex flex-col md:ml-64 min-h-screen">
-        {/* Mobile top bar */}
-        <header className="md:hidden bg-blue-900 text-white flex items-center px-4 py-3 sticky top-0 z-10">
-          <button onClick={() => setMobileOpen(true)} className="text-white text-2xl mr-3 leading-none">☰</button>
-          <span className="font-bold text-lg">🇵🇱 Auto Leads</span>
+      <div className="flex min-h-screen flex-1 flex-col md:ml-64">
+        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
+          <div className="flex items-center justify-between px-4 py-3 md:hidden">
+            <button onClick={() => setMobileOpen(true)} className="text-2xl leading-none text-slate-700">☰</button>
+            <div>
+              <div className="text-sm font-bold">🇵🇱 Auto Leads</div>
+              <div className="text-xs text-slate-500">{pageLabel}</div>
+            </div>
+            <div className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">{projectId}</div>
+          </div>
+          <div className="hidden items-center justify-between px-6 py-3 md:flex">
+            <div>
+              <div className="text-sm font-semibold text-slate-900">{pageLabel}</div>
+              <div className="text-xs text-slate-500">Premium AUTO-SYSTEM · PWA · mobile-first</div>
+            </div>
+            <div className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">projectId: {projectId}</div>
+          </div>
         </header>
 
-        <main className="flex-1 overflow-auto">
+        <main className="flex-1 overflow-auto pb-24 md:pb-0">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/mapa" element={<VoivodeshipMap />} />
@@ -121,6 +151,21 @@ export default function App() {
             <Route path="/auto-rozwoj" element={<AutoRozwoj />} />
           </Routes>
         </main>
+
+        <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-slate-200 bg-white/95 backdrop-blur md:hidden">
+          <div className="grid grid-cols-5">
+            {MOBILE_NAV.map(({ to, short }) => (
+              <NavLink
+                key={to}
+                to={to}
+                end={to === '/'}
+                className={({ isActive }) => `px-2 py-3 text-center text-[11px] font-semibold ${isActive ? 'text-blue-700' : 'text-slate-500'}`}
+              >
+                {short}
+              </NavLink>
+            ))}
+          </div>
+        </nav>
       </div>
     </div>
   )

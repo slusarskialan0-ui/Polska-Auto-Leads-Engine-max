@@ -87,6 +87,7 @@ class OrderHistory(Base):
 class AcquisitionLog(Base):
     __tablename__ = "acquisition_logs"
     id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(String, index=True, default="default")
     voivodeship = Column(String, index=True)
     industries = Column(String)  # comma-separated
     source_type = Column(String)
