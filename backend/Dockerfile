@@ -12,6 +12,7 @@ COPY requirements.txt ./requirements.txt
 RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY --chown=appuser:appuser . .
+RUN chmod +x ./entrypoint.sh
 
 EXPOSE 8000
 
