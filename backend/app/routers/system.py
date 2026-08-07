@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.models.models import Client, Order, VoivodeshipStatus
 from app.runtime import AUTO_THRESHOLDS, recent_events, resolve_project_id, runtime_snapshot, system_event
-from config import PIPELINE_WORKER_CAPACITY, PROJECT_ID_HEADER
+from config import APP_ENV, PIPELINE_WORKER_CAPACITY, PROJECT_ID_HEADER
 from database import get_db
 
 router = APIRouter(prefix="/system", tags=["system"])
@@ -144,9 +144,18 @@ def forecast(request: Request, project_id: str | None = None, db: Session = Depe
 
 @router.get("/ops-dashboard")
 def ops_dashboard(request: Request, project_id: str | None = None, db: Session = Depends(get_db)):
+    from app.routers.pipeline import pipeline_status
+
     scoped_project_id = _project_id(request, project_id)
+    active_pipelines = [
+        item for item in pipeline_status.values()
+        if item.get("project_id") == scoped_project_id and (item.get("status") == "running" or str(item.get("status", "")).startswith("retrying"))
+    ]
     return {
         "project_id": scoped_project_id,
+        "environment": APP_ENV,
+        "active_pipelines": len(active_pipelines),
+        "worker_capacity": PIPELINE_WORKER_CAPACITY,
         "self_healing": self_healing(),
         "forecast": forecast(request, scoped_project_id, db),
         "load": load_forecast(request, scoped_project_id, db),

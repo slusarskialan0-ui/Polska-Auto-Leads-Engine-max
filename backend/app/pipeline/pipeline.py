@@ -12,17 +12,6 @@ from app.sources import ALL_SOURCES, CompanyProfile, validate_email, validate_ph
 from app.sources.sources import BaseSource
 
 
-def _dedup(profiles: list[CompanyProfile]) -> list[CompanyProfile]:
-    seen = set()
-    result = []
-    for profile in profiles:
-        key = (profile.company_name.lower().strip(), profile.voivodeship, profile.industry)
-        if key not in seen:
-            seen.add(key)
-            result.append(profile)
-    return result
-
-
 def _validate(profile: CompanyProfile) -> bool:
     if not profile.company_name or not profile.company_name.strip():
         return False
@@ -60,14 +49,24 @@ def run_pipeline(voivodeship: str, industries: list[str], db: Session, project_i
             logs.append((source_type, found, profiles))
             all_profiles.extend(profiles)
 
-    raw_total_found = sum(found for _, found, _ in logs)
-    all_profiles = _dedup(all_profiles)
+    raw_total_found = len(all_profiles)
+    source_totals = {source_type: {"found": found, "accepted": 0, "rejected": 0} for source_type, found, _ in logs}
     accepted = 0
-    rejected = max(raw_total_found - len(all_profiles), 0)
+    rejected = 0
+    seen = set()
 
     for profile in all_profiles:
+        source_type = profile.source_type
+        dedup_key = (profile.company_name.lower().strip(), profile.voivodeship, profile.industry)
+        if dedup_key in seen:
+            rejected += 1
+            source_totals[source_type]["rejected"] += 1
+            continue
+        seen.add(dedup_key)
+
         if not _validate(profile):
             rejected += 1
+            source_totals[source_type]["rejected"] += 1
             continue
 
         existing = (
@@ -82,6 +81,7 @@ def run_pipeline(voivodeship: str, industries: list[str], db: Session, project_i
         )
         if existing:
             rejected += 1
+            source_totals[source_type]["rejected"] += 1
             continue
 
         loc = (
@@ -139,39 +139,20 @@ def run_pipeline(voivodeship: str, industries: list[str], db: Session, project_i
         )
         db.add(order)
         accepted += 1
+        source_totals[source_type]["accepted"] += 1
 
     db.commit()
 
-    for source_type, found, profiles in logs:
-        source_rejected = 0
-        source_accepted = 0
-        for profile in profiles:
-            if not _validate(profile):
-                source_rejected += 1
-                continue
-            duplicate = (
-                db.query(Client.id)
-                .filter(
-                    Client.project_id == project_id,
-                    Client.company_name == profile.company_name,
-                    Client.voivodeship == profile.voivodeship,
-                    Client.industry == profile.industry,
-                )
-                .count()
-            )
-            if duplicate:
-                source_accepted += 1
-            else:
-                source_rejected += 1
+    for source_type, totals in source_totals.items():
         db.add(
             AcquisitionLog(
                 project_id=project_id,
                 voivodeship=voivodeship,
                 industries=",".join(industries),
                 source_type=source_type,
-                found=found,
-                accepted=source_accepted,
-                rejected=max(found - source_accepted, source_rejected),
+                found=totals["found"],
+                accepted=totals["accepted"],
+                rejected=totals["found"] - totals["accepted"],
             )
         )
 
@@ -194,7 +175,7 @@ def run_pipeline(voivodeship: str, industries: list[str], db: Session, project_i
         "total_found": raw_total_found,
         "accepted": accepted,
         "rejected": rejected,
-        "sources": [{"source_type": source_type, "found": found} for source_type, found, _ in logs],
+        "sources": [{"source_type": source_type, "found": totals["found"]} for source_type, totals in source_totals.items()],
     }
     system_event("pipeline", "completed", "Pipeline completed", result)
     return result

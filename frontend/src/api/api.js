@@ -51,5 +51,5 @@ api.interceptors.response.use(
 )
 
 export default api
-export const API_BASE = api.defaults.baseURL
+export const getApiBase = () => api.defaults.baseURL
 export { readProjectId }
