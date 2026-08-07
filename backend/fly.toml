@@ -1,3 +1,4 @@
+# Set app to your Fly app name or rely on --app in CI deploy.
 app = "REPLACE_WITH_FLY_BACKEND_APP_NAME"
 primary_region = "waw"
 kill_signal = "SIGINT"

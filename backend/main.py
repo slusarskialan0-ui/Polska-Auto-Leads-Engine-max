@@ -179,14 +179,16 @@ def health():
         db_status = "error"
         db_error = str(exc)
 
-    return {
+    payload = {
         "status": "ok" if db_status == "ok" else "degraded",
         "version": APP_VERSION,
         "ts": int(time.time()),
         "time_utc": datetime.now(timezone.utc).isoformat(),
         "db": db_status,
-        "error": db_error,
+        "error": "database check failed" if db_error else None,
     }
+    status_code = 200 if db_status == "ok" else 503
+    return JSONResponse(status_code=status_code, content=payload)
 
 
 @app.get("/version", tags=["system"])
