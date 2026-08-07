@@ -15,7 +15,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build ROOT Dockerfile
+      - name: Validate ROOT Dockerfile build
         run: docker build -f ./Dockerfile -t polska-auto-leads-engine:ci .
 
       - name: Setup Flyctl
