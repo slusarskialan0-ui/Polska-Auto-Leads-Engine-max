@@ -1,12 +1,18 @@
 {
+  "id": "/",
   "name": "Polska Auto Leads Engine",
   "short_name": "Auto Leads",
-  "description": "Automatyczny system pozyskiwania klientów dla całej Polski",
+  "description": "Automatyczny system pozyskiwania klientów dla całej Polski.",
+  "lang": "pl-PL",
+  "dir": "ltr",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "background_color": "#ffffff",
   "theme_color": "#1e3a8a",
-  "orientation": "any",
+  "orientation": "portrait-primary",
+  "categories": ["business", "productivity"],
   "icons": [
     {
       "src": "/icons/icon-192.png",
@@ -21,6 +27,24 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["business", "productivity"],
-  "screenshots": []
+  "shortcuts": [
+    {
+      "name": "AUTO-LEADS",
+      "short_name": "Leads",
+      "url": "/auto-leads",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "AUTO-STATUS",
+      "short_name": "Status",
+      "url": "/auto-status",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "DEV PLATFORM",
+      "short_name": "Dev",
+      "url": "/auto-dev",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
 }

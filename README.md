@@ -1,251 +1,160 @@
-# 🇵🇱 Polska Auto Leads Engine — v3.0.0
+# 🇵🇱 Polska Auto Leads Engine — v3.1.0
 
-**FINALNY, kompletny, w pełni automatyczny produkt SaaS** — system pozyskiwania klientów dla całej Polski.  
-AUTO-SYSTEM + AUTO-SKALOWANIE + AUTO-DEPLOY + AUTO-SECURITY + AUTO-ANALYTICS + AUTO-BIZNES + AUTO-MOBILE + PWA + Developer Platform.  
-**Bez logowania użytkowników. Gotowy do wdrożenia.**
+Finalny, lokalnie skalowany produkt SaaS/PWA do automatycznego pozyskiwania leadów, pracy operacyjnej i developer access — **bez logowania użytkowników**, z izolacją danych przez `projectId` (`X-Project-Id`).
 
----
+## Co jest gotowe
+- FastAPI backend z modułami: pipeline, analytics, biznes, security, dev platform, system ops
+- React/Vite frontend mobile-first + PWA + offline shell + install flow + background sync
+- AUTO-SYSTEM: self-healing, load forecast, resource optimizer, thresholds, logs, pipeline queue
+- AUTO-DEV PLATFORM: project scope, analytics API, limity, rotacja kluczy, sandbox, API docs
+- AUTO-RUN / AUTO-OPS: `start_all.sh`, `scripts/healthcheck.sh`, `scripts/auto_maintain.sh`
+- AUTO-CONFIG: `config/backend.env.example`, `config/frontend.env.example`
+- Deploy readiness: Railway (backend) + Vercel (frontend)
 
-## 🚀 Szybki start (lokalnie)
+## Architektura
+- **Backend:** `/backend` — FastAPI + SQLAlchemy, SQLite dev / PostgreSQL prod
+- **Frontend:** `/frontend` — React + Vite + Tailwind + Recharts
+- **Config:** `/config` — przykładowe env dla deploy
+- **Scripts:** `/scripts` — healthcheck i maintenance
+- **Deploy:** `Procfile`, `railway.json`, `frontend/vercel.json`, `.github/workflows/ci.yml`
 
-### Wymagania
-- Python 3.9+
-- Node.js 18+
+## Finalne endpointy backendu
+### System / Ops
+- `GET /`
+- `GET /health`
+- `GET /version`
+- `GET /metrics`
+- `GET /api-config`
+- `GET /system/self-healing`
+- `GET /system/status`
+- `GET /system/thresholds`
+- `GET /system/logs`
+- `GET /system/load-forecast`
+- `GET /system/resource-optimizer`
+- `GET /system/forecast`
+- `GET /system/ops-dashboard`
+- `POST /system/fix-pipeline-stall`
+- `POST /system/fix-slow-queries`
 
-### Uruchomienie jedną komendą
+### CRM / Pipeline
+- `GET /clients`
+- `GET /clients/{id}`
+- `PATCH /clients/{id}/status`
+- `GET /orders`
+- `GET /orders/{id}`
+- `PATCH /orders/{id}/status`
+- `POST /orders/{id}/history`
+- `GET /voivodeships`
+- `PATCH /voivodeships/{name}/priority`
+- `GET /industries`
+- `POST /industries`
+- `POST /pipeline/run`
+- `GET /pipeline/status/{voivodeship}`
+- `GET /pipeline/status`
+- `GET /pipeline/queue`
+- `GET /pipeline/logs`
+- `GET /stats`
 
+### Analytics / Biznes
+- `GET /analytics/revenue`
+- `GET /analytics/growth`
+- `GET /analytics/churn`
+- `GET /analytics/heatmap`
+- `GET /analytics/saas-dashboard`
+- `GET /biznes/pricing`
+- `GET /biznes/billing`
+- `GET /biznes/marketplace`
+- `GET /biznes/agency-dashboard`
+- `GET /biznes/subscriptions`
+- `GET /biznes/usage`
+
+### Security / Dev Platform
+- `GET /security/status`
+- `POST /security/block-ip`
+- `GET /security/blocked-ips`
+- `DELETE /security/blocked-ips/{ip}`
+- `GET /security/audit-trail`
+- `GET /security/threats`
+- `POST /security/backup`
+- `GET /security/recovery`
+- `GET /dev/analytics`
+- `GET /dev/limits`
+- `GET /dev/sandbox`
+- `POST /dev/keys/rotate`
+- `GET /dev/keys`
+- `GET /dev/docs-url`
+- `GET /dev/project`
+
+## Finalne widoki frontendu
+- `/` — Dashboard
+- `/mapa` — mapa województw
+- `/klienci`
+- `/klienci/:id`
+- `/zlecenia`
+- `/zlecenia/:id`
+- `/auto-leads`
+- `/auto-status`
+- `/auto-kontakt`
+- `/auto-security`
+- `/auto-analytics`
+- `/auto-biznes`
+- `/auto-dev`
+- `/marketplace`
+- `/agencja`
+- `/landing`
+- `/auto-rozwoj`
+
+## Finalne komendy startowe
 ```bash
 bash start_all.sh
-```
 
-| Usługa | URL |
-|--------|-----|
-| 📊 Panel web | http://localhost:3000 |
-| 🔌 Backend API | http://localhost:8000 |
-| 📖 API Docs (Swagger) | http://localhost:8000/docs |
-| 📖 API Docs (ReDoc) | http://localhost:8000/redoc |
-| ❤️ Health check | http://localhost:8000/health |
-| 📈 Metryki | http://localhost:8000/metrics |
-
----
-
-## 🌐 Deploy — Railway (backend)
-
-1. Utwórz nowy projekt na [Railway](https://railway.app)
-2. Podłącz to repo (folder `backend/`)
-3. Railway auto-wykryje `Procfile` i uruchomi backend
-4. Ustaw zmienne środowiskowe:
-   ```
-   DATABASE_URL=postgresql://...   # Railway Postgres plugin
-   CORS_ORIGINS=https://twoj-frontend.vercel.app
-   PORT=8000
-   ```
-5. Skopiuj URL backendu (np. `https://api.railway.app`)
-
----
-
-## 🌐 Deploy — Vercel (frontend)
-
-1. Utwórz nowy projekt na [Vercel](https://vercel.com)
-2. Podłącz to repo, ustaw **Root Directory = `frontend`**
-3. Ustaw zmienne środowiskowe w Vercel:
-   ```
-   VITE_API_URL=https://twoj-backend.railway.app
-   ```
-4. Build command: `npm run build` | Output: `dist`
-5. Vercel automatycznie doda SPA rewriting (vercel.json już skonfigurowany)
-
----
-
-## 📱 Wersja mobilna + PWA
-
-Aplikacja jest w pełni **mobile-first** i działa jako **Progressive Web App (PWA)**:
-- Responsywny layout z hamburger menu na mobile
-- Instalowalna na telefonie (Add to Home Screen)
-- Service worker — działa offline (app shell) + background sync
-- `manifest.json` z ikonami i splash screen
-- Meta tagi dla iOS i Android
-- Auto-update PWA bez pytania użytkownika
-
-Aby zainstalować na telefonie:
-1. Otwórz aplikację w przeglądarce mobilnej
-2. Kliknij "Dodaj do ekranu głównego"
-
----
-
-## 📊 Widoki aplikacji
-
-| Widok | Ścieżka | Opis |
-|-------|---------|------|
-| Dashboard | `/` | Statystyki, wykresy wg województwa/branży/źródła |
-| Mapa Województw | `/mapa` | Status skanowania 16 województw |
-| Klienci | `/klienci` | Lista z filtrami |
-| Szczegóły klienta | `/klienci/:id` | Profil firmy + zlecenia |
-| Zlecenia | `/zlecenia` | Lista zleceń z wartościami |
-| Szczegóły zlecenia | `/zlecenia/:id` | Szczegóły + historia |
-| AUTO-LEADS | `/auto-leads` | Uruchomienie pipeline pozyskiwania |
-| AUTO-STATUS | `/auto-status` | Live monitoring systemu + metryki |
-| AUTO-KONTAKT | `/auto-kontakt` | Generator wiadomości do klientów |
-| AUTO-SECURITY | `/auto-security` | Bezpieczeństwo: IP blocking, audit trail, backup |
-| AUTO-ANALYTICS | `/auto-analytics` | Revenue, growth, churn, heatmaps |
-| AUTO-BIZNES | `/auto-biznes` | Pricing AI, billing, marketplace, usage |
-| DEV PLATFORM | `/auto-dev` | API analytics, limits, key rotation, sandbox |
-| Marketplace | `/marketplace` | Lead marketplace — top 20 leadów |
-| Agencja | `/agencja` | Panel dla agencji |
-| Landing | `/landing` | Landing page + cennik + CTA |
-| AUTO-ROZWÓJ | `/auto-rozwoj` | Roadmap AI, feature suggestions, priority AI |
-
----
-
-## 🏗️ Architektura
-
-```
-polska-auto-leads-engine/
-├── backend/                    # FastAPI backend (Railway)
-│   ├── main.py                 # App + middleware + health + metrics + version
-│   ├── config.py               # ENV-based config
-│   ├── database.py             # SQLAlchemy (SQLite / Postgres)
-│   ├── requirements.txt
-│   ├── start.sh
-│   └── app/
-│       ├── models/models.py    # All DB models
-│       ├── routers/
-│       │   ├── clients.py      # /clients
-│       │   ├── orders.py       # /orders
-│       │   ├── voivodeships.py # /voivodeships
-│       │   ├── industries.py   # /industries
-│       │   ├── pipeline.py     # /pipeline (auto-resume, retries)
-│       │   ├── stats.py        # /stats
-│       │   ├── analytics.py    # /analytics (revenue, growth, churn, heatmap)
-│       │   ├── biznes.py       # /biznes (pricing AI, billing, marketplace)
-│       │   ├── security.py     # /security (IP blocking, audit trail, backup)
-│       │   ├── devplatform.py  # /dev (API analytics, limits, key rotation)
-│       │   └── system.py       # /system (self-healing, load forecast, optimizer)
-│       ├── pipeline/pipeline.py # Auto-pipeline (concurrent sources, dedup)
-│       ├── sources/            # Data sources (katalog, mapa, rejestr, social, ogloszenia)
-│       └── data/geography.py   # 16 voivodeships + cities + order templates
-├── frontend/                   # React + Vite + Tailwind (Vercel)
-│   ├── src/
-│   │   ├── App.jsx             # Router + Sidebar + mobile menu
-│   │   ├── api/api.js          # Axios (AUTO-CONNECT via VITE_API_URL)
-│   │   ├── main.jsx            # PWA install prompt + SW registration
-│   │   └── pages/             # 17 pages
-│   └── public/
-│       ├── manifest.json       # PWA manifest
-│       └── sw.js               # Service worker (offline + background sync)
-├── .github/workflows/ci.yml    # CI/CD: lint + build + deploy check
-├── start_all.sh                # Auto-start script (backend + frontend)
-├── Procfile                    # Railway entry point
-├── railway.json                # Railway config
-├── API.md                      # Full API documentation
-└── README.md                   # This file
-```
-
----
-
-## 🧩 AUTO-SYSTEM — moduły
-
-### 🔄 AUTO-SELF-HEALING
-- Pipeline auto-restartuje się przy błędach (3 próby)
-- `/system/self-healing` — status naprawiania
-- `/system/fix-pipeline-stall` — naprawia zawieszone pipeline'y
-- `/system/fix-slow-queries` — optymalizuje bazę danych
-
-### 📈 AUTO-PREDICTIVE
-- `/system/forecast` — predykcja problemów
-- `/system/load-forecast` — prognoza obciążenia
-- `/analytics/growth` — trend wzrostu
-
-### ⚡ AUTO-HOT-CACHE
-- In-process TTL cache (30s) dla statystyk i metryk
-- Redukcja zapytań DB przy wysokim ruchu
-
-### 🛡️ AUTO-SECURITY
-- IP blocklist (in-memory + REST API)
-- Rate limiting: 100 req/min per IP
-- Audit trail w DB (każdy request)
-- Threat detection (automatyczne)
-- Backup on-demand
-
-### 📊 AUTO-ANALYTICS
-- Revenue tracking (wg miesiąca)
-- Growth tracking (klienci + zlecenia)
-- Churn tracking (aktywni vs utraceni)
-- Usage heatmap (wg województwa)
-- SaaS dashboard — wszystko w jednym
-
-### 💰 AUTO-BIZNES
-- Pricing AI — ceny dynamiczne wg popytu
-- Billing — faktury + abonament
-- Lead Marketplace — top 20 leadów
-- Agency Dashboard — panel dla agencji
-- Usage tracking — requesty API
-
-### 🧩 AUTO-DEV PLATFORM
-- API analytics w czasie rzeczywistym
-- Dynamiczne limity wg planu
-- Sandbox environment
-- API key rotation
-- Dokumentacja auto-generowana (/docs, /redoc)
-
-### 🧠 AUTO-ROZWÓJ
-- Roadmap generowana automatycznie
-- Feature suggestions
-- Priority AI — priorytety wg wartości biznesowej
-
----
-
-## 📋 Zmienne środowiskowe
-
-### Backend (Railway)
-| Zmienna | Opis | Domyślnie |
-|---------|------|-----------|
-| `DATABASE_URL` | PostgreSQL URL | `sqlite:///./polska_leads.db` |
-| `CORS_ORIGINS` | Frontend URL (Vercel) | `http://localhost:3000` |
-| `PORT` | Port backendu | `8000` |
-
-### Frontend (Vercel)
-| Zmienna | Opis | Domyślnie |
-|---------|------|-----------|
-| `VITE_API_URL` | Backend URL (Railway) | `http://localhost:8000` |
-
----
-
-## 🔌 Kluczowe endpointy
-
-```
-GET  /health              → {"status":"ok","version":"3.0.0"}
-GET  /metrics             → metryki pipeline
-GET  /stats               → statystyki klientów/zleceń
-GET  /analytics/saas-dashboard → pełny SaaS dashboard
-GET  /biznes/pricing      → dynamiczne ceny
-GET  /security/status     → status bezpieczeństwa
-GET  /dev/analytics       → statystyki API
-GET  /system/self-healing → status auto-naprawiania
-POST /pipeline/run        → uruchom pipeline
-```
-
----
-
-## 🔧 Komendy startowe
-
-```bash
-# Lokalnie (wszystko)
-bash start_all.sh
-
-# Tylko backend
 cd backend && pip install -r requirements.txt && python main.py
-
-# Tylko frontend
 cd frontend && npm install && npm run dev
-
-# Build frontendu (produkcja)
 cd frontend && npm run build
 
-# Testy importów backendu
-cd backend && python -c "import main; print('OK')"
+bash scripts/healthcheck.sh
+bash scripts/auto_maintain.sh
 ```
 
----
+## projectId / brak logowania
+- Domyślny projekt: `default`
+- Izolacja danych działa przez nagłówek `X-Project-Id`
+- Frontend zapisuje aktualny `projectId` w `localStorage`
+- Większość endpointów backendu respektuje aktualny zakres projektu
 
-*Polska Auto Leads Engine v3.0.0 — Finalny produkt premium AUTO-SYSTEM*
+## PWA / mobile
+- `manifest.json` z shortcutami
+- `sw.js` z offline shell, request queue i background sync
+- przycisk instalacji aplikacji
+- automatyczne odświeżenie po aktualizacji service workera
+- mobile bottom nav + responsive shell + safe-area/touch optimizations
+
+## Zmienne środowiskowe do deploy
+### Railway + backend
+```env
+APP_ENV=production
+DATABASE_URL=postgresql://... 
+CORS_ORIGINS=https://twoj-frontend.vercel.app
+PORT=8000
+DEFAULT_PROJECT_ID=default
+CACHE_TTL_SECONDS=30
+PIPELINE_WORKER_CAPACITY=3
+THRESHOLD_PIPELINE_STALL_SECONDS=900
+THRESHOLD_SLOW_QUERY_MS=750
+THRESHOLD_RATE_LIMIT_PER_MIN=100
+THRESHOLD_CACHE_TARGET_PCT=80
+```
+
+### Vercel + frontend
+```env
+VITE_API_URL=https://twoj-backend.railway.app
+```
+
+## Szybki deploy
+- **Backend / Railway:** root `backend`, start `python main.py`, health `/health`
+- **Frontend / Vercel:** root `frontend`, build `npm run build`, output `dist`
+
+## Dokumentacja
+- `SPEC.md` — techniczna specyfikacja produktu
+- `API.md` — opis endpointów i project scope
+- `/docs` i `/redoc` — interaktywne OpenAPI

@@ -1,198 +1,133 @@
-# SPEC.md — Polska Auto Leads Engine v3.0.0
+# SPEC.md — Polska Auto Leads Engine v3.1.0
 
-**Specyfikacja techniczna** finalnego produktu SaaS.
+## 1. Produkt
+- Typ: single-region SaaS + PWA + mobile-first + developer platform
+- Stack: FastAPI + SQLAlchemy + React/Vite + Tailwind
+- Auth: brak logowania użytkowników
+- Multi-project scope: `projectId` przez header `X-Project-Id`
+- Deploy: Railway (backend), Vercel (frontend)
 
----
-
-## 1. Przegląd systemu
-
-| Parametr | Wartość |
-|----------|---------|
-| Wersja | 3.0.0 |
-| Architektura | Backend FastAPI + Frontend React/Vite |
-| Baza danych | SQLite (dev) / PostgreSQL (prod) |
-| Deploy backend | Railway |
-| Deploy frontend | Vercel |
-| Typ aplikacji | SaaS + PWA + Mobile-first |
-| Autentykacja | Brak (brak logowania) |
-| Regiony | Jeden region (Railway EU) |
-
----
-
-## 2. Backend — FastAPI
-
-### Modele DB (SQLAlchemy)
-- **Industry** — branże (name, description, service_type)
-- **Location** — lokalizacje (voivodeship, county, city)
-- **VoivodeshipStatus** — status skanowania 16 województw
-- **Client** — klienci (project_id, company_name, industry, location, email, phone, website, source_type, status)
-- **Order** — zlecenia (project_id, client_id, title, description, value, status)
-- **OrderHistory** — historia zleceń (note, status_change)
-- **AcquisitionLog** — logi pipeline (voivodeship, industries, source_type, found, accepted, rejected)
-- **AuditLog** — audit trail (action, ip, user_agent, endpoint, ts)
+## 2. Backend
+### Modele
+- `Industry`
+- `Location`
+- `VoivodeshipStatus`
+- `Client` (`project_id`)
+- `Order` (`project_id`)
+- `OrderHistory`
+- `AcquisitionLog` (`project_id`)
+- `AuditLog`
 
 ### Routery
-| Router | Prefix | Opis |
-|--------|--------|------|
-| clients | `/clients` | CRUD klientów |
-| orders | `/orders` | CRUD zleceń + historia |
-| voivodeships | `/voivodeships` | Status województw |
-| industries | `/industries` | Lista branż |
-| pipeline | `/pipeline` | Uruchamianie + status + logi |
-| stats | `/stats` | Statystyki ogólne |
-| analytics | `/analytics` | Revenue, growth, churn, heatmap |
-| biznes | `/biznes` | Pricing AI, billing, marketplace |
-| security | `/security` | IP blocking, audit trail, backup |
-| devplatform | `/dev` | API analytics, limits, key rotation |
-| system | `/system` | Self-healing, load forecast, optimizer |
+- `/clients`
+- `/orders`
+- `/voivodeships`
+- `/industries`
+- `/pipeline`
+- `/stats`
+- `/analytics`
+- `/biznes`
+- `/security`
+- `/dev`
+- `/system`
 
-### Middleware (main.py)
-1. **CORS** — allow_origins="*" (prod: CORS_ORIGINS z env)
-2. **SecurityMiddleware** — IP block check + rate limiting (100 req/min/IP) + audit logging
+### AUTO-SYSTEM runtime
+- cache TTL z invalidacją per `project_id`
+- runtime snapshot: env, uptime, cache entries, thresholds
+- system event log in-memory
+- self-healing metrics
+- slow-query optimizer (`ANALYZE`, `VACUUM` dla SQLite)
+- load forecast, resource optimizer, ops dashboard
 
-### Auto-cache (hot cache)
-- In-process TTL cache (`_cache` dict) — 30s TTL
-- Używany przy /stats, /metrics dla redukcji zapytań DB
+### Pipeline
+- źródła uruchamiane równolegle
+- dedup po `company_name + voivodeship + industry`
+- walidacja email/phone
+- retry do 3 prób
+- queue/status per `project_id + voivodeship`
+- logi akwizycji per projekt
 
-### Pipeline (auto-pipeline)
-- 5 źródeł danych uruchamianych równolegle (ThreadPoolExecutor)
-- Deduplication (company_name + voivodeship + industry)
-- Walidacja (email regex, phone regex)
-- Auto-resume po błędach (3 próby + sleep 2s)
-- Zapis klientów + zleceń + logów do DB
+## 3. Frontend
+### Widoki
+- Dashboard `/`
+- Mapa `/mapa`
+- Klienci `/klienci`
+- Szczegóły klienta `/klienci/:id`
+- Zlecenia `/zlecenia`
+- Szczegóły zlecenia `/zlecenia/:id`
+- AUTO-LEADS `/auto-leads`
+- AUTO-STATUS `/auto-status`
+- AUTO-KONTAKT `/auto-kontakt`
+- AUTO-SECURITY `/auto-security`
+- AUTO-ANALYTICS `/auto-analytics`
+- AUTO-BIZNES `/auto-biznes`
+- DEV PLATFORM `/auto-dev`
+- Marketplace `/marketplace`
+- Agencja `/agencja`
+- Landing `/landing`
+- AUTO-ROZWÓJ `/auto-rozwoj`
 
-### Źródła danych
-| Źródło | source_type | Firm/branżę |
-|--------|-------------|-------------|
-| Katalog Firm Polska | katalog | 8 |
-| Lokalne Wyszukiwarki | mapa | 7 |
-| CEIDG/KRS | rejestr | 6 |
-| Social Media | social | 4 |
-| Ogłoszenia | ogloszenia | 5 |
-| **RAZEM** | | **~30/branżę** |
+### AUTO-APP / PWA
+- install prompt
+- service worker
+- offline shell (`offline.html`)
+- background sync request queue
+- push notifications support
+- manifest shortcuts
+- dynamic `theme-color`
+- error boundary
+- mobile bottom nav + touch optimizations
 
----
+## 4. AUTO-DEV PLATFORM
+- project scope bez logowania
+- analytics requestów per projekt
+- limity wyliczane z usage
+- rotacja kluczy per projekt
+- sandbox metadata
+- docs URL + API markdown
 
-## 3. Frontend — React + Vite + Tailwind
+## 5. AUTO-SECURITY
+- IP blocklist
+- rate limiting per IP
+- audit trail do DB
+- threat log
+- backup snapshot metadata
+- recovery plan endpoint
 
-### Strony
-| Strona | Ścieżka | Komponent |
-|--------|---------|-----------|
-| Dashboard | `/` | Dashboard.jsx |
-| Mapa Województw | `/mapa` | VoivodeshipMap.jsx |
-| Klienci | `/klienci` | Clients.jsx |
-| Szczegóły klienta | `/klienci/:id` | ClientDetail.jsx |
-| Zlecenia | `/zlecenia` | Orders.jsx |
-| Szczegóły zlecenia | `/zlecenia/:id` | OrderDetail.jsx |
-| AUTO-LEADS | `/auto-leads` | AutoLeads.jsx |
-| AUTO-STATUS | `/auto-status` | AutoStatus.jsx |
-| AUTO-KONTAKT | `/auto-kontakt` | AutoContact.jsx |
-| AUTO-SECURITY | `/auto-security` | AutoSecurity.jsx |
-| AUTO-ANALYTICS | `/auto-analytics` | AutoAnalytics.jsx |
-| AUTO-BIZNES | `/auto-biznes` | AutoBiznes.jsx |
-| DEV PLATFORM | `/auto-dev` | AutoDevPlatform.jsx |
-| Marketplace | `/marketplace` | AutoMarketplace.jsx |
-| Agencja | `/agencja` | AutoAgency.jsx |
-| Landing | `/landing` | AutoLanding.jsx |
-| AUTO-ROZWÓJ | `/auto-rozwoj` | AutoRozwoj.jsx |
+## 6. AUTO-OPS / AUTO-RUN
+- `start_all.sh`
+- `scripts/healthcheck.sh`
+- `scripts/auto_maintain.sh`
+- `config/backend.env.example`
+- `config/frontend.env.example`
 
-### PWA
-- `manifest.json` — name, icons, display:standalone, theme_color
-- `sw.js` — install, activate, fetch (stale-while-revalidate), background sync, push notifications
-- `main.jsx` — PWA install prompt (beforeinstallprompt), SW registration, auto-update
-
----
-
-## 4. AUTO-SYSTEM — specyfikacja modułów
-
-### AUTO-SELF-HEALING
-- Pipeline retries: 3 próby z exponential backoff
-- `/system/fix-pipeline-stall` — reset zawieszonych pipeline'ów
-- `/system/fix-slow-queries` — ANALYZE na tabelach DB
-- Error tracking in-memory
-
-### AUTO-PREDICTIVE-PIPELINE
-- `/system/forecast` — confidence_pct + next_issue prediction
-- `/system/load-forecast` — clients/orders per hour + scaling recommendation
-
-### AUTO-RESOURCE-OPTIMIZER
-- `/system/resource-optimizer` — cache_hit_rate, slow_queries_fixed, recommendations
-
-### AUTO-HOT-CACHE
-- `cache_get/cache_set` w main.py — 30s TTL
-- Endpoints: /stats, /metrics używają cache
-
-### AUTO-COLD-STORAGE
-- `/analytics/heatmap` — archiwalne dane wg województwa
-
-### AUTO-SECURITY
-- BLOCKED_IPS dict (in-memory + REST)
-- RATE_LIMIT_STORE — 100 req/min per IP (sliding window)
-- THREAT_LOG — ostatnie 50 zagrożeń
-- AuditLog — każdy request zapisywany do DB
-- `/security/backup` — snapshot counts z DB
-
-### AUTO-DEV-PLATFORM
-- API_KEYS store (in-memory) z rotacją przez UUID
-- API_REQUEST_LOG — czas odpowiedzi + endpoint
-- Dynamiczne limity wg tier
-- Sandbox endpoint
-
-### AUTO-BIZNES
-- Pricing AI — demand_factor wg total_clients (wyższy gdy >1000)
-- Billing mock — faktury + abonament
-- Lead Marketplace — top 20 wg wartości
-- Agency Dashboard — podział wg project_id
-
-### AUTO-ANALYTICS
-- Revenue — suma Order.value
-- Growth — klienci/zlecenia wg miesiąca (func.strftime)
-- Churn — klienci 'odrzucony' jako churn
-- Heatmap — wg województwa: klienci, zlecenia, przychody
-
-### AUTO-ROADMAP
-- Hardcoded 6 roadmap items z priorytetami AI
-- 5 feature suggestions z confidence score
-
----
-
-## 5. CI/CD — GitHub Actions
-
-```yaml
-# .github/workflows/ci.yml
-jobs:
-  backend-test  # lint + import check Python
-  frontend-build  # npm build + PWA artifacts verify
-  docker-build  # Procfile verify + deploy echo
+## 7. Finalne komendy
+```bash
+bash start_all.sh
+cd backend && pip install -r requirements.txt && python main.py
+cd frontend && npm install && npm run dev
+cd frontend && npm run build
+bash scripts/healthcheck.sh
+bash scripts/auto_maintain.sh
 ```
 
----
-
-## 6. Zmienne środowiskowe
-
-### Railway (backend)
-```
-DATABASE_URL=******host:5432/db
+## 8. Finalne env do deploy
+### Railway
+```env
+APP_ENV=production
+DATABASE_URL=postgresql://...
 CORS_ORIGINS=https://twoj-frontend.vercel.app
 PORT=8000
+DEFAULT_PROJECT_ID=default
+CACHE_TTL_SECONDS=30
+PIPELINE_WORKER_CAPACITY=3
+THRESHOLD_PIPELINE_STALL_SECONDS=900
+THRESHOLD_SLOW_QUERY_MS=750
+THRESHOLD_RATE_LIMIT_PER_MIN=100
+THRESHOLD_CACHE_TARGET_PCT=80
 ```
 
-### Vercel (frontend)
-```
+### Vercel
+```env
 VITE_API_URL=https://twoj-backend.railway.app
 ```
-
----
-
-## 7. Komendy startowe
-
-```bash
-bash start_all.sh          # wszystko lokalnie
-python main.py             # backend tylko
-npm run dev                # frontend tylko (dev)
-npm run build              # frontend build (prod)
-```
-
----
-
-*SPEC.md — Polska Auto Leads Engine v3.0.0 — Final AUTO-SYSTEM Product*
